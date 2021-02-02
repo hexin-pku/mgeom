@@ -16,6 +16,6 @@ a python script for manipulation of molecular geometry.
 3. and it's easy to extened.
 
 ## TODO
-[ ] topology analysis
-[ ] RMSD analysis and provide more trajectory analysis
-[ ] provide more IO format, such as .pdb etc.
+ - [ ] topology analysis
+ - [ ] RMSD analysis and provide more trajectory analysis
+ - [ ] provide more IO format, such as .pdb etc.
