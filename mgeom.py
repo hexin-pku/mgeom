@@ -5,13 +5,41 @@ import numpy.linalg as la
 import sys, os, copy
 np.set_printoptions(linewidth=400)
 
-at_list = ['X', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
-'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca']
+PeriodicTable = '''      -----                                                               -----
+1 | H |                                                               |He |
+  |---+----                                       --------------------+---|
+2 |Li |Be |                                       | B | C | N | O | F |Ne |
+  |---+---|                                       |---+---+---+---+---+---|
+3 |Na |Mg |3B  4B  5B  6B  7B |    8B     |1B  2B |Al |Si | P | S |Cl |Ar |
+  |---+---+---------------------------------------+---+---+---+---+---+---|
+4 | K |Ca |Sc |Ti | V |Cr |Mn |Fe |Co |Ni |Cu |Zn |Ga |Ge |As |Se |Br |Kr |
+  |---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---|
+5 |Rb |Sr | Y |Zr |Nb |Mo |Tc |Ru |Rh |Pd |Ag |Cd |In |Sn |Sb |Te | I |Xe |
+  |---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---|
+6 |Cs |Ba |LAN|Hf |Ta | W |Re |Os |Ir |Pt |Au |Hg |Tl |Pb |Bi |Po |At |Rn |
+  |---+---+---+------------------------------------------------------------
+7 |Fr |Ra |ACT|
+  -------------
+              -------------------------------------------------------------
+   Lanthanide |La |Ce |Pr |Nd |Pm |Sm |Eu |Gd |Tb |Dy |Ho |Er |Tm |Yb |Lu |
+              |---+---+---+---+---+---+---+---+---+---+---+---+---+---+---|
+   Actinide   |Ac |Th |Pa | U |Np |Pu |Am |Cm |Bk |Cf |Es |Fm |Md |No |Lw |
+              -------------------------------------------------------------'''
+
+
+at_list = ['X', 'H', 'He',
+'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
+'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr']
+
 at_dict = {'X':0, 'H':1, 'He':2, 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
-'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18, 'K':19, 'Ca':20}
+'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18, 'K':19, 'Ca':20,
+'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,
+'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36}
+
 # relative atomic masses of elements (in atomic mass units [amu]) from
 # "CRC Handbook" 84th ed, ed Lide, pgs 1-12 - 1-14
-at_masses = {    'H' : 1.00794, 'C' : 12.0107, 'O' : 15.9994, 'N' : 14.0067,
+at_mass = {    'H' : 1.00794, 'C' : 12.0107, 'O' : 15.9994, 'N' : 14.0067,
   'F' : 18.9984, 'P' : 30.9738, 'S' : 32.0650, 'Cl': 35.4530, 'Br': 79.9040,
   'I' : 126.904, 'He': 4.00260, 'Ne': 20.1797, 'Ar': 39.9480, 'Li': 6.94100,
   'Be': 9.01218, 'B' : 10.8110, 'Na': 22.9898, 'Mg': 24.3050, 'Al': 26.9815,
@@ -40,9 +68,13 @@ def get_file_string_array(file):
     return array
 
 
-## MATH FUNCTIONS ##
+################### VEC3D MATH FUNCTIONS##################
+'''
+    using vectorization programs via numpy
+'''
+# outer product
 def vec3d_outer(V1, V2):
-    """ numpy array
+    """ input numpy array
     V1 ~ (3) or (:,3)
     V2 ~ (3) or (:,3)
     """
@@ -57,9 +89,9 @@ def vec3d_outer(V1, V2):
     C[:,2] = A[:,0]*B[:,1] - A[:,1]*B[:,0]
     return C.reshape(np.shape(V1))
 
-
+# inner product
 def vec3d_inner(V1, V2):
-    """ numpy array
+    """ input numpy array
     V1 ~ (3) or (:,3)
     V2 ~ (3) or (:,3)
     """
@@ -76,12 +108,18 @@ def vec3d_inner(V1, V2):
     elif(len(np.shape(V1))== 2):
         return C
 
+# bond distance
 def vec3d_bond(V1, V2):
+    """ input numpy array
+    V1 ~ (3) or (:,3)
+    V2 ~ (3) or (:,3)
+    """
     return np.sqrt( vec3d_inner(V1-V2, V1-V2) )
 
 
-def vec3d_unit(V):
-    """ numpy array
+# unit vectors
+def vec3d_uvec(V):
+    """ input numpy array
     V ~ (3) or (:,3)
     """
     if(len(np.shape(V))== 1):
@@ -89,16 +127,29 @@ def vec3d_unit(V):
     elif(len(np.shape(V))== 2):
         return V / np.outer( vec3d_bond(V, np.zeros(np.shape(V))), np.ones((3)) )
 
+# cos of angles for point sets V1, V2, V3
 def vec3d_cosangle(V1, V2, V3):
+    """ input numpy array
+    V1 ~ (3) or (:,3)
+    V2 ~ (3) or (:,3)
+    V3 ~ (3) or (:,3)
+    """
     b1 = vec3d_bond(V1, V2)
     b2 = vec3d_bond(V3, V2)
     return vec3d_inner(V1-V2, V3-V2) / (b1*b2)
 
+# angles for point sets V1, V2, V3
 def vec3d_angle(V1, V2, V3):
+    """ input numpy array
+    V1 ~ (3) or (:,3)
+    V2 ~ (3) or (:,3)
+    V3 ~ (3) or (:,3)
+    """
     return np.arccos(vec3d_cosangle(V1, V2, V3))
 
+# cos of dihedrals for point sets V1, V2, V3, V4
 def vec3d_cosdihedral(V1, V2, V3, V4):
-    """ numpy array
+    """ input numpy array
     V1 ~ (3) or (:,3)
     V2 ~ (3) or (:,3)
     V3 ~ (3) or (:,3)
@@ -110,8 +161,9 @@ def vec3d_cosdihedral(V1, V2, V3, V4):
     Z = np.zeros(np.shape(Y1))
     return vec3d_cosangle(Y1+Z, Z, Y2+Z)
 
+# dihedrals for point sets V1, V2, V3, V4
 def vec3d_dihedral(V1, V2, V3, V4):
-    """ numpy array
+    """ input numpy array
     V1 ~ (3) or (:,3)
     V2 ~ (3) or (:,3)
     V3 ~ (3) or (:,3)
@@ -124,33 +176,58 @@ def vec3d_dihedral(V1, V2, V3, V4):
     Z = np.zeros(np.shape(Y1))
     return np.arccos( vec3d_cosangle(Y1+Z, Z, Y2+Z) ) * s
 
-# get local axis system from 3 coordinates
+# local axis system from V2, V3, V4 (to decide V1's zmatrice)
 def vec3d_axis(V2, V3, V4):
-    """ numpy array
-    V2 ~ (3) or (:,3), bond
-    V3 ~ (3) or (:,3), angle
-    V4 ~ (3) or (:,3), torsion
+    """ input numpy array @TODO
+    V2 ~ (3) or (:,3), bond: V1-V2
+    V3 ~ (3) or (:,3), angle: V1-V2-V3
+    V4 ~ (3) or (:,3), dihedral: V1-V2-V3-V4
     """
     # left hand local axis
-    Z = vec3d_unit( V3-V2 )                      # z axis
-    Y = vec3d_unit( - vec3d_outer(V3-V2,V4-V3) ) # y axis
-    X = vec3d_unit( vec3d_outer(Z, Y)  )         # x axis
-    return [X, Y, Z]
+    Zuvec = vec3d_uvec( V3-V2 )                      # z axis
+    Yuvec = vec3d_uvec( - vec3d_outer(V3-V2,V4-V3) ) # y axis
+    Xuvec = vec3d_uvec( vec3d_outer(Zuvec, Yuvec)  ) # x axis
+    return [Xuvec, Yuvec, Zuvec]
 
-# calculate vector of bond in local axes of internal coordinates
-def vec3d_zmat(r, a, t):
-    x = r * np.sin(a) * np.cos(t)
-    y = r * np.sin(a) * np.sin(t)
-    z = r * np.cos(a)
-    return [x, y, z]
+# displace with d
+def vec3d_displace(V, d):
+    """ input numpy array
+    V ~ (3) or (:,3)
+    d ~ (3)
+    """
+    if(len(np.shape(V))== 1):
+        A = V.reshape((len(V)//3, 3))
+    elif(len(np.shape(V1))== 2):
+        A = V
+    dc = d.reshape((3))
+    return A + np.outer( np.ones((len(V)//3)), dc )
+
+
+# rotate with theta aound n
+def vec3d_rotate(V, n, theta):
+    """ input numpy array
+    V ~ (3) or (:,3)
+    n ~ (3)
+    theta: scalar
+    """
+    if(len(np.shape(V))== 1):
+        A = V.reshape((len(V)//3, 3))
+    elif(len(np.shape(V1))== 2):
+        A = V
+    nc = vec3d_uvec(n).reshape((3)) # normalization of direction cosine
+    C = np.zeros((3,3)); nouter = np.zeros((3,3))
+    nouter[0,1] = -nc[2]; nouter[0,2] = nc[1]; nouter[1,0] = nc[2];
+    nouter[1,2] = -nc[0]; nouter[2,0] = -nc[1]; nouter[2,1] = nc[0];
+    C = np.outer(nc,nc)*(1-np.cos(theta)) + np.eye(3)*np.cos(theta) + nouter*np.sin(theta)
+    return (np.dot(C, A.T)).T
 
 
 # molecule class for molecular data
 class mol_class:
     _before = ''
     _after  = ''
-    _suc_zmat = False
-    _suc_cart = False
+    _has_zmat = False
+    _has_cart = False
 
     # constructor
     def __init__(self, file, type='zmat', fmt='mndo'):
@@ -161,10 +238,10 @@ class mol_class:
         try:
             if self.type == 'zmat':
                 self.get_zmat(self.file)
-                self._suc_zmat = True
+                self._has_zmat = True
             elif self.type == 'cart':
                 self.get_cart(self.file)
-                self._suc_cart = True
+                self._has_cart = True
             else:
                 raise ValueError('type: zmat or cart')
         except ValueError as e:
@@ -303,7 +380,7 @@ class mol_class:
             for i in range(self.natom):
                 self.at_idx[i] = int( at_dict.get(self.at_flag[i], 0) )
 
-    def bondlist(self):
+    def topology(self):
         self.dist = np.zeros((self.natom, self.natom))
         for i in range(self.natom):
             for j in range(i):
@@ -311,9 +388,16 @@ class mol_class:
                 self.dist[j,i] = self.dist[i,j]
         self.blist = []
         for i in range(self.natom):
-            self.blist.append( np.where( (self.dist[i,:]-0.01)*(self.dist[i,:]-bondcut) < 0 )[0] )
+            self.blist.append( np.where( (self.dist[i,:]-1e-8)*(self.dist[i,:]-bondcut) < 0 )[0] )
+        # for i in range(self.natom):
+        #     print(self.blist[i], self.dist[i,self.blist[i]])
+        self.topmat = np.zeros((self.natom, self.natom))
         for i in range(self.natom):
-            print(self.blist[i], self.dist[i,self.blist[i]])
+            for j in self.blist[i]:
+                if j>=i:
+                    continue
+                self.topmat[i,j] = 1
+                self.topmat[j,i] = 1
 
     # obtain cartesian xyz-cartinates from z-matrix values
     def zmat2cart(self):
@@ -340,11 +424,11 @@ class mol_class:
             carts1 = carts2 + disp
             self.cart[i,:] = carts1
         self.cart_fix = np.ones(np.shape(self.cart)).astype(np.int)
-        self._suc_cart = True
+        self._has_cart = True
 
     # obtain cartesian xyz-cartinates from z-matrix values
     def cart2zmat(self):
-        self.bondlist()
+        self.topology()
         self.zmat = np.zeros((self.natom, 3))
         if self.natom >= 1:
             self.zmat[0,:] = 0
@@ -388,83 +472,97 @@ class mol_class:
         self.zmat[:,1:] = self.zmat[:,1:]%(2*np.pi)
         self.zmat_fix = np.ones(np.shape(self.zmat)).astype(np.int)
         self.zmat_fix[0,:] = 0; self.zmat_fix[1,1:] = 0; self.zmat_fix[2,2:] = 0
-        self._suc_cart = True
+        self._has_cart = True
 
-    def print(self, fmt='xyz', type='cart'):
-        if type=='zmat':
+    def _string(self, fmt='xyz', type='cart'):
+        istr = ''
+        if type=='zmat' and self._has_zmat:
             if fmt=='mndo':
                 if(self.fmt=='mndo'):
-                    print(self._before)
+                    istr += self._before+'\n'
                 else:
-                    print('IOP=-6 JOP=0\n\nOM2')
+                    istr += 'IOP=-6 JOP=0\n\nOM2' + '\n'
                 for i in range(self.natom):
-                    print(' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\t%d\t%d\t%d'%
+                    istr += (' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\t%d\t%d\t%d\n'%
                         (self.at_idx[i], self.zmat[i,0], self.zmat_fix[i,0],
                         self.zmat[i,1]*rad2deg, self.zmat_fix[i,1],
                         self.zmat[i,2]*rad2deg, self.zmat_fix[i,2],
                         self.zmat_ref[i,0]+1, self.zmat_ref[i,1]+1, self.zmat_ref[i,2]+1) )
                 if(self.fmt=='mndo'):
-                    print(self._after)
+                    istr += self._after + '\n'
                 else:
-                    print(' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\t%d\t%d\t%d'%(0,0,0,0,0,0,0,0,0,0))
+                    istr += ' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\t%d\t%d\t%d\n'%(0,0,0,0,0,0,0,0,0,0)
             if fmt=='gauss':
                 if(self.fmt=='gauss'):
-                    print(self._before)
+                    istr += self._before + '\n'
                 else:
-                    print('# sp hf/STO-3G\n\nTitle Card Required\n\n0 1')
+                    istr += '# sp hf/STO-3G\n\nTitle Card Required\n\n0 1\n'
                 if self.natom >= 1:
-                    print(' %s'%at_list[self.at_idx[0]])
+                    istr += ' %s\n'%at_list[self.at_idx[0]]
                 if self.natom >= 2:
-                    print(' %s\t%d\t%12.8f'%
+                    istr += (' %s\t%d\t%12.8f\n'%
                         (at_list[self.at_idx[1]], self.zmat_ref[1,0]+1, self.zmat[1,0]) )
                 if self.natom >= 3:
-                    print(' %s\t%d\t%12.8f\t%d\t%12.8f'%
+                    istr += (' %s\t%d\t%12.8f\t%d\t%12.8f\n'%
                         (at_list[self.at_idx[2]], self.zmat_ref[2,0]+1, self.zmat[2,0],
                         self.zmat_ref[2,1]+1, self.zmat[2,1]*rad2deg ) )
                 for i in range(3,self.natom):
-                    print(' %s\t%d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d'%
+                    istr += (' %s\t%d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\n'%
                         (at_list[self.at_idx[0]], self.zmat_ref[i,0]+1, self.zmat[i,0],
                         self.zmat_ref[i,1]+1, self.zmat[i,1]*rad2deg,
                         self.zmat_ref[i,2]+1, self.zmat[i,2]*rad2deg, 0) )
                 if(self.fmt=='gauss'):
-                    print(self._after)
+                    istr += self._after + '\n'
                 else:
-                    print('\n\n\n')
-        elif type=='cart':
+                    istr += '\n\n\t'
+        elif type=='cart' and self._has_cart:
             if fmt == 'mndo':
                 if(self.fmt=='mndo'):
-                    print(self._before)
+                    istr += self._before + '\n'
                 else:
-                    print('IOP=-6 JOP=0\n\nOM2')
+                    istr += 'IOP=-6 JOP=0\n\nOM2\n'
                 for i in range(self.natom):
-                    print(' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d'%
+                    istr += (' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\n'%
                         (self.at_idx[i], self.cart[i,0], self.cart_fix[i,0],
                         self.cart[i,1], self.cart_fix[i,1],
                         self.cart[i,2], self.cart_fix[i,2] ) )
                 if(self.fmt=='mndo'):
-                    print(self._after)
+                    istr += self._after + '\n'
                 else:
-                    print(' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d'%(0,0,0,0,0,0,0))
+                    istr += ' %d\t%12.8f\t%d\t%12.8f\t%d\t%12.8f\t%d\n'%(0,0,0,0,0,0,0)
             elif fmt == 'gauss':
                 if(self.fmt=='gauss'):
-                    print(self._before)
+                    istr += self._before + '\n'
                 else:
-                    print('# sp hf/STO-3G\n\nTitle Card Required\n\n0 1')
+                    istr += '# sp hf/STO-3G\n\nTitle Card Required\n\n0 1\n'
                 for i in range(self.natom):
-                    print(' %s\t%12.8f\t%12.8f\t%12.8f'%
+                    istr += (' %s\t%12.8f\t%12.8f\t%12.8f\n'%
                         (at_list[self.at_idx[i]], self.cart[i,0], self.cart[i,1],
                         self.cart[i,2] ) )
                 if(self.fmt=='gauss'):
-                    print(self._after)
+                    istr += self._after + '\n'
                 else:
-                    print('\n\n\n')
+                    istr += '\n\n\t'
             elif fmt == 'xyz':
-                print(self.natom)
-                print(self.name)
+                istr += '%d\n'%self.natom
+                istr += self.name + '\n'
                 for i in range(self.natom):
-                    print(' %s\t%12.8f\t%12.8f\t%12.8f'%
+                    istr += (' %s\t%12.8f\t%12.8f\t%12.8f\n'%
                         (at_list[self.at_idx[i]], self.cart[i,0], self.cart[i,1],
                         self.cart[i,2]) )
+        else:
+            print("\033[1;35mERROR\033[0m: don't have type of (%s)"%type)
+        while istr[-1]=='\n':
+            istr = istr[0:-1]
+        return istr
+
+    def print(self, fmt='xyz', type='cart'):
+        print(self._string(fmt=fmt, type=type))
+
+    def save(self, file='default.save', fmt='xyz', type='cart'):
+        f=open(file, 'w')
+        f.write(self._string(fmt=fmt, type=type))
+        f.close()
 
     def mix(self, other, per):
         obj = copy.copy(other)
@@ -520,5 +618,6 @@ if __name__ == '__main__':
                 for i in np.linspace(0,1,50):
                     molx = mol.mix(mol2,per=i)
                     molx.print(fmt=sso[0], type=sso[1])
+                    molx.save(file=mol2.name+'.mix%.2f'%i,fmt=sso[0], type=sso[1])
 
 
